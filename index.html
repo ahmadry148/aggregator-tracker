@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Aggregator Technical Issues — Daily Tracker</title>
+<style>
+  :root{
+    --maroon-dark:#4A1420; --maroon:#6E1E2E; --maroon-soft:#8B2A3E; --maroon-tint:#F3E7E9;
+    --gold:#C9A24B; --ink:#241A1D; --muted:#7A6E71; --line:#ECE4E5; --paper:#FBF8F6; --card:#FFFFFF;
+    --good:#2E7D5B; --good-tint:#E4F1EB; --warn:#B7791F; --warn-tint:#FBF0DA; --bad:#B0322C; --bad-tint:#F7E4E3;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14px}
+  .wrap{max-width:1200px;margin:0 auto;padding:20px}
+  .accent{height:3px;background:var(--maroon);border-radius:4px 4px 0 0}
+  header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;padding-top:16px;margin-bottom:20px}
+  h1{font-size:20px;margin:0;color:var(--maroon-dark)}
+  .sub{color:var(--muted);margin:2px 0 0;font-size:13px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px}
+  .card-h{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 10px}
+  .card-h h3{font-size:14px;margin:0;font-weight:600}
+  .card-b{padding:0 20px 18px}
+  /* buttons */
+  .btn{border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer;border:1px solid transparent}
+  .btn-primary{background:var(--maroon);color:#fff;border-color:var(--maroon)}
+  .btn-primary:hover{background:var(--maroon-soft)}
+  .btn-ghost{background:#fff;color:var(--maroon);border-color:var(--line)}
+  .btn-muted{background:#fff;color:var(--muted);border-color:var(--line)}
+  .link{background:none;border:none;color:var(--maroon);font-size:12px;font-weight:600;cursor:pointer}
+  /* kpi */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .kpi .lab{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  .kpi .val{font-size:30px;font-weight:700;margin-top:6px;font-variant-numeric:tabular-nums}
+  /* fields */
+  .grid{display:grid;gap:12px}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  .g5{grid-template-columns:repeat(5,1fr)}
+  label.f{display:flex;flex-direction:column;gap:4px}
+  label.f span{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  input,select{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px;color:var(--ink);background:#fff;width:100%;font-family:inherit}
+  input:focus,select:focus{outline:2px solid var(--maroon-tint);border-color:var(--maroon-soft)}
+  .row-actions{margin-top:16px;display:flex;gap:8px;flex-wrap:wrap}
+  section{margin-bottom:20px}
+  /* filter head */
+  .fhead{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .fhead b{font-size:14px}
+  /* chart */
+  .bars{display:flex;flex-direction:column;gap:10px;padding:6px 0 4px}
+  .bar-row{display:flex;align-items:center;gap:10px}
+  .bar-row .name{width:130px;font-size:13px;flex-shrink:0}
+  .bar-track{flex:1;height:14px;background:var(--line);border-radius:7px;overflow:hidden}
+  .bar-fill{height:14px;border-radius:7px}
+  .bar-row .cnt{width:44px;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+  /* table */
+  .tscroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse}
+  thead tr{background:var(--maroon-tint);border-bottom:2px solid var(--line)}
+  th{padding:10px 12px;text-align:left;font-weight:600;color:var(--maroon-dark);white-space:nowrap;cursor:pointer;user-select:none;font-size:13px}
+  td{padding:9px 12px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+  tbody tr:hover{background:#fdfafb}
+  .agg{color:var(--maroon);font-weight:600;white-space:nowrap}
+  .olink{color:var(--maroon);font-weight:600;text-decoration:none;cursor:pointer;border-bottom:1px dashed var(--maroon-soft)}
+  .olink:hover{color:var(--maroon-soft);border-bottom-style:solid}
+  #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;
+    background:var(--maroon-dark);color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;font-weight:600;
+    box-shadow:0 6px 20px rgba(36,26,29,.25);transition:opacity .2s,transform .2s;z-index:50;max-width:90vw}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .pill{display:inline-block;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:600;white-space:nowrap}
+  .del{color:var(--bad);background:none;border:none;cursor:pointer;font-size:15px;line-height:1}
+  .edit{color:var(--maroon);background:none;border:none;cursor:pointer;font-size:15px;line-height:1;margin-right:8px}
+  .empty{text-align:center;color:var(--muted);padding:32px 0}
+  .note{font-size:12px;color:var(--muted);margin-top:16px}
+  .tabs{display:flex;gap:4px;margin-bottom:18px;border-bottom:1px solid var(--line)}
+  .tab{background:none;border:none;padding:10px 18px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tab:hover{color:var(--maroon-soft)}
+  .tab.active{color:var(--maroon);border-bottom-color:var(--maroon)}
+  .rgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:820px){.rgrid{grid-template-columns:1fr}}
+  .countbar{margin-top:14px;padding:10px 16px;background:var(--maroon-tint);border:1px solid var(--line);
+    border-radius:10px;font-size:14px;color:var(--maroon-dark);text-align:center;font-variant-numeric:tabular-nums}
+  .countbar b{font-size:16px}
+  .hide{display:none}
+  @media(max-width:820px){.kpis{grid-template-columns:repeat(2,1fr)}.g4,.g5{grid-template-columns:1fr 1fr}}
+  @media(max-width:520px){.g4,.g5{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="accent"></div>
+  <header class="top">
+    <div>
+      <h1>Aggregator Technical Issues — Daily Tracker</h1>
+      <p class="sub">Log issues, filter by date range &amp; aggregator, starts empty — link a OneDrive JSON or Import CSV to load data.</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <span id="syncState" style="font-size:12px;font-weight:600;color:var(--muted);margin-right:4px">○ Local only</span>
+      <span id="srvState" style="font-size:12px;font-weight:600;color:var(--good)"></span>
+      <button class="btn btn-ghost" id="btnServer" title="Connect to the shared n8n backend (live data for everyone)">◆ Server</button>
+      <button class="btn btn-ghost" id="btnLink" title="Link to a shared JSON file in your OneDrive folder">🔗 Link OneDrive file</button>
+      <button class="btn btn-ghost" id="btnNewFile" title="Create a new shared data file in your OneDrive folder">＋ New file</button>
+      <button class="btn btn-ghost" id="btnReload" title="Reload latest data from the linked file">↻ Reload</button>
+      <button class="btn btn-ghost" id="btnImport">⤒ Import CSV</button>
+      <input type="file" id="fileInput" accept=".csv,text/csv" class="hide" />
+      <button class="btn btn-primary" id="btnExport">⤓ Export CSV</button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="tracker">📋 Tracker</button>
+    <button class="tab" data-tab="reports">📊 Reports</button>
+  </div>
+
+  <div id="tab-tracker">
+
+  <!-- Entry form -->
+  <section class="card">
+    <div class="card-h"><h3>Add issue entry</h3><button class="link" id="toggleForm">Hide</button></div>
+    <div class="card-b" id="formBody">
+      <div class="grid g4">
+        <label class="f"><span>Date</span><input type="date" id="f-date"></label>
+        <label class="f"><span>Aggregator</span><select id="f-agg"></select></label>
+        <label class="f"><span>Order ID</span><input id="f-order" type="text" inputmode="numeric" autocomplete="off" placeholder="e.g. 638368381"></label>
+        <label class="f"><span>Order Amount</span><input id="f-amount" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 45.50"></label>
+        <label class="f"><span>Branch ID (store)</span><input list="dl-branch" id="f-branch" placeholder="pick or type store #"></label>
+        <label class="f"><span>Order Status</span><input list="dl-status" id="f-status"></label>
+        <label class="f"><span>Reason / Comment</span><input list="dl-reason" id="f-reason"></label>
+        <label class="f"><span>Owner</span><select id="f-owner"></select></label>
+        <label class="f"><span>1st Level Investigation</span><input list="dl-invest" id="f-invest"></label>
+        <label class="f"><span>IT Feedback</span><input id="f-it"></label>
+        <label class="f"><span>OPs Feedback</span><input id="f-ops"></label>
+      </div>
+      <div class="row-actions"><button class="btn btn-primary" id="btnAdd">＋ Add entry</button><button class="btn btn-muted" id="btnClearEntry">✕ Clear</button></div>
+    </div>
+  </section>
+
+  <datalist id="dl-status"></datalist>
+  <datalist id="dl-reason"></datalist>
+  <datalist id="dl-invest"></datalist>
+  <datalist id="dl-branch"></datalist>
+
+  <!-- Filters -->
+  <section class="card"><div class="card-b" style="padding-top:16px">
+    <div class="fhead">▾ <b>Filter</b></div>
+    <div class="grid g5">
+      <label class="f"><span>From date</span><input type="date" id="q-from"></label>
+      <label class="f"><span>To date</span><input type="date" id="q-to"></label>
+      <label class="f"><span>Aggregator</span><select id="q-agg"></select></label>
+      <label class="f"><span>Status</span><select id="q-status"></select></label>
+      <label class="f"><span>Search (order / branch / notes)</span><input id="q-search" placeholder="type to search…"></label>
+    </div>
+    <div class="row-actions"><button class="btn btn-muted" id="btnClear">✕ Clear filters</button></div>
+  </div></section>
+
+  <!-- Table -->
+  <section class="card">
+    <div class="card-h"><h3>Records</h3></div>
+    <div class="tscroll">
+      <table>
+        <thead><tr id="theadRow"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="countbar">Showing <b id="rowCount">0</b> record(s)</div>
+
+  <p class="note"><b>Share via OneDrive:</b> open this file <b>locally in Chrome/Edge</b> from your synced OneDrive folder (not the SharePoint web link), click <b>🔗 Link OneDrive file</b> (or <b>＋ New file</b> the first time) and pick a <i>.json</i> in that folder. Every add/edit/delete saves to it and OneDrive syncs it to your team; press <b>↻ Reload</b> to pull others' latest. Edit one at a time — simultaneous edits make OneDrive "conflict" copies. <b>Export/Import CSV</b> still work for backups/Excel.</p>
+  </div><!-- /tab-tracker -->
+
+  <div id="tab-reports" class="hide">
+    <div class="card"><div class="card-b" style="padding-top:16px">
+      <div class="fhead">▾ <b>Report filter</b> <span style="color:var(--muted);font-weight:400;font-size:12px">(blank = all data)</span></div>
+      <div class="grid g4">
+        <label class="f"><span>From date</span><input type="date" id="r-from"></label>
+        <label class="f"><span>To date</span><input type="date" id="r-to"></label>
+        <label class="f"><span>Aggregator</span><select id="r-agg"></select></label>
+        <label class="f"><span>&nbsp;</span><button class="btn btn-muted" id="r-clear">✕ Clear</button></label>
+      </div>
+    </div></div>
+
+    <div class="kpis" id="r-kpis" style="margin-top:20px"></div>
+
+    <div class="rgrid" style="margin-top:4px">
+      <div class="card"><div class="card-h"><h3>Issues by month</h3><button class="link" data-exp="month">⤓ Export</button></div><div class="card-b"><div class="bars" id="r-month"></div></div></div>
+      <div class="card"><div class="card-h"><h3>Top stores</h3><button class="link" data-exp="store">⤓ Export</button></div><div class="card-b"><div class="bars" id="r-store"></div></div></div>
+      <div class="card"><div class="card-h"><h3>By aggregator</h3></div><div class="card-b"><div class="bars" id="r-aggb"></div></div></div>
+      <div class="card"><div class="card-h"><h3>By status</h3></div><div class="card-b"><div class="bars" id="r-status"></div></div></div>
+      <div class="card"><div class="card-h"><h3>By owner</h3></div><div class="card-b"><div class="bars" id="r-owner"></div></div></div>
+      <div class="card"><div class="card-h"><h3>Top investigations</h3></div><div class="card-b"><div class="bars" id="r-invest"></div></div></div>
+    </div>
+    <p class="note">Reports summarize the whole dataset (or the report filter above). Month = issue count per calendar month; Top stores ranks branches by issue count (name shown where known).</p>
+  </div><!-- /tab-reports -->
+
+</div>
+
+<script>
+/* ---------------- config ---------------- */
+var STORE_KEY = "aggIssuesTracker.public.v1";
+var PORTAL_URL = "https://operation.shawarmer.com/#/all-orders/pages/orders";
+function copyText(t){
+  try{ if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(t); return true; } }catch(e){}
+  try{ var ta=document.createElement("textarea"); ta.value=t; ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); return true;
+  }catch(e){ return false; }
+}
+function toast(msg){
+  var el=document.getElementById("toast"); if(!el){el=document.createElement("div");el.id="toast";document.body.appendChild(el);}
+  el.textContent=msg; el.className="show";
+  clearTimeout(el._t); el._t=setTimeout(function(){el.className="";},3500);
+}
+function openOrder(oid){
+  var ok=copyText(oid);
+  window.open(PORTAL_URL,"_blank","noopener");
+  toast(ok ? ("Order "+oid+" copied — paste into the External Id Ref Id field") : ("Opening portal — External Id: "+oid));
+}
+var AGGREGATORS = ["HungerStation","Jahez","Keeta","Ninja","ToYou","Mrsool","Chefz","Mobile App"];
+var STATUSES = ["Cancelled","Compensated","Pending Status","Order in Pending Status","Order in Created status","Order showing in created status","failed creation","Order not generated system"];
+var REASONS = ["Technical problem","Order not in Vendor system","Order showing in pending status","Store did not accept"];
+var OWNERS = ["IT","OPS"];
+var INVESTIGATIONS = ["Stucked on Received For Fulfillment","Stucked on Order Placed","Error","Rejected","Expired","Successful","System Technical Issue"];
+var AGG_ALIAS = {hs:"HungerStation",jahez:"Jahez",keeta:"Keeta",ninja:"Ninja",mobile:"Mobile App",app:"Mobile App",toyou:"ToYou",mrsool:"Mrsool"};
+var COLS = [
+  {key:"date",label:"Date"},{key:"agg",label:"Aggregator"},{key:"orderId",label:"Order ID"},{key:"amount",label:"Order Amount"},
+  {key:"branchId",label:"Branch"},{key:"status",label:"Order Status"},{key:"reason",label:"Reason / Comment"},
+  {key:"owner",label:"Owner"},{key:"investigation",label:"1st Level Investigation"},
+  {key:"itFeedback",label:"IT Feedback"},{key:"opsFeedback",label:"OPs Feedback"}
+];
+var SERIES = ["#6E1E2E","#C9A24B","#8B2A3E","#7A6E71","#4A1420","#2E7D5B"];
+
+/* ---------------- seed ---------------- */
+/* ---------------- store numbers & names ---------------- */
+var STORE_NAMES={"7":"AlQuds (King Abdullah Rd. Exit 10)","9":"AlRayyan (AlImam Ahmed Bin Hanbal St.)","12":"AlIzdihar (AlImam Saud Ibn Abdulaziz Rd Exit 9)","13":"AlRaed (King Abdullah Rd.)","14":"AlMathar AlShamali (Makkah Rd.)","18":"Granada Mall (Eastern Ring Rd.)","19":"AlMuruj (King Abdul Aziz Rd.)","209":"AlYassmin (Abo Bakr AlSdek Rd.)","21":"Riyadh Gallery Mall (King Fahad Rd.)","232":"Shubra (Aaish Bint Abo Bakr St.)","235":"Badr (ibn taymeeyah Rd.)","239":"As Saadah (Shibh Al jazirah St.)","241":"Al Aziziyah (Al Haeer Rd.)","247":"AL Duawdimi (King Abdulaziz Rd.)","252":"Al Malaz (Jarir St.)","273":"Al Mansourah (Maan bin Zaidah St.)","278":"Al Hazem (Derab Way)","279":"Aluraija AlGharbiyah (Khadijah Rd.)","287":"An Narjis (Abi Bakr As Siddiq Rd.)","288":"Boulevard Riyadh","290":"Najm Ad Din Al Ayyubi Rd.","293":"Ar Rimal (Al Sahel Valley Rd.)","295":"Shawarmer Olaya","301":"Al Manar (Khurais Road)","302":"Boulevard world (USA)","36":"AlSahafah (Anas Bin Malik Rd.)","37":"Qurtubah (Said Bin Zayd Rd.)","46":"AlSuwaidi AlGharabi (Hamzh Ibn Abdulmutlib St.)","49":"AlSafa (Eastren Ring Rd. Exit 15)","52":"Ishbiliya (AlImam Abdullah Ibn Saud Rd.)","54":"AlShifa (Alimam Muslem Rd.)","55":"AlNahdah (Salman AlFarsi Rd.)","59":"AlKhaleej (King Abdullah Rd.)","60":"AlRawabi (Prince Saad Ibn Abdulrahman AlAwl Rd)","63":"Hayat Mall (King Abdulaziz Rd.)","64":"Riyadh Park (Northern Ring Rd.)","66":"AlRabie (King Abdulaziz Rd.)","67":"King Khalid International Airport (Terminal 5)","70":"Wadi Laban (AlShifa St.)","79":"Tuwaiq (Sulayman Ibn Abdulmalik Ibn Marwan St.)","83":"Wadi Laban (AlTaif St)","84":"AlAndalus (Khaled Ibn AlWalid St.)","87":"AlNakeel (Prince Turky Alawal Rd.)","88":"AlMutamarat (Takhassusi St.)","91":"Hettin (Salbouk Rd.)","206":"Adnoc (Dammam Rd)","207":"Alghurub (Najm Ad Din Al Ayyubi Rd.)","221":"Al Aarid (King Fahd Rd.)","222":"AlNasim (Hassan bin Thabit St.)","227":"AlAihtifalat (Osama Bin Zaed St.)","234":"Al Qadisiyyah (Ashaikh Jaber Alsabah st.)","243":"Al Aziziyah (Al Azizyah main Rd.)","26":"AlRawdah (Khaled Ibn AlWalid St.)","294":"Sultanah (Sweedi Alam St.)","296":"Al Aqiq (Prince Mohammed bin Saad St.)","31":"AlYarmouk (Dammam Rd.)","33":"AlWadi (Uthman Ibn Affan Rd.)","38":"AlMunsiyah (Dammam Rd.)","45":"AlQarah (King Abdulaziz Rd.)","57":"AlNazim (Khurais Rd.)","68":"AlMunsiyah (Thumamah Rd.)","208":"AlJalawiyah (King Khalid St.)","212":"AlNur (King Saud Rd.)","219":"Al Faisaliayh (King Fahd Rd.)","224":"Al Mubarraz (king Faisal St.)","233":"Al Qusur (Prince Mohammed Bin Fahad Road)","260":"Ras Tanura (King Abdulaziz Rd.)","270":"AlNouzha (Othman Ibn affan)","271":"AlFursan","280":"GO Station","34":"AlSalmaniyah (Prince Foaz St.)","48":"AlMubarraz (Khalid Ibn AlWalid St.)","51":"AlRakah AlShamaliyah (King Fahed Rd.)","53":"AlBuhayrah (AlKhalij Rd.)","56":"AlAzizia ( King Khaled Rd.)","75":"AlRawdha (AlKhalij Rd.)","82":"AlAqrabia (Prince Faisal Bin Fahed Rd.)","92":"AlFaisalyah (Abu Bakr AlSdek St.)","1001":"Al Mazah","1002":"Cairo Festival Mall","1003":"Chillout Sadat Axis","1004":"AlTayaran - Nasr City","220":"Shawarmer Truck","240":"Shawarmer Bus","275":"Food Truck 3","297":"Mina (Jadat Al Khaif)","303":"Pop up kiosk","78":"Beast land","112":"AlBalad (King Faisal St.)","118":"AlMuntazah (King Fahad Rd.)","122":"Jalmudah (Alasyal St.)","129":"AlKhozama (King Abdullah Rd.)","130":"AlWadi (King Abdullah St.)","131":"AlMuruj (King Abdullah Rd.)","135":"AlFaiha (AlMasjid Rd.)","138":"Al Faisaliyah (King Abdullaziz Road)","139":"AlTahilia (Immam Turki bin Abdullah Rd.)","142":"Najran","144":"Baljurashi","145":"Muhayil Asir (King faisal Rd.)","146":"Al Mithnab","149":"Al Baha Mall","999":"Lab New Menu","6666":"Egypt Lab","9997":"Sahafa Training Center","9999":"SHAA LAB","9900":"Lab","305":"The village (Al Haramain Rd.)","401":"SHW cloud kitchen","201":"AlFakhriyah (Zamil Abdullah Alsuleim St.)","202":"AlDhahi (Omar bin Abdulaziz St.)","203":"An Naqrah (Fahad Al Ali Al Araifiy St.)","225":"AlSafra (King abdulla Rd.)","226":"AlRayan (King salman Rd.)","263":"Al Quwaiiyah (Makkah Rd.)","266":"Az Zulfi (King Abdullah Rd.)","267":"Al Bukayriyah (King Abdulaziz Rd.)","282":"Alwasetaa (King Fahad Rd.)","283":"Al Matar (King Fahad Rd.)","284":"Al Mansuriyah (King Abdullah Rd)","39":"King Fahad District (King Fahad Rd.)","69":"AlMuzahimiyah (Makkah Rd.)","2001":"Shaa - Alarid","2002":"Shaa - Al Rawdah","2003":"Shaa - Rihana","2004":"Shaa - Shifa","2005":"Shaa - Al Qadisiyah-Jaber","2006":"Shaa - Al Badiaah","2007":"Shaa - AlNahdah","2008":"Shaa - Qurtubah","2009":"Shaa - Tuwaiq","2010":"Shaa - Wadi Laban","2011":"Shaa - Al Aziziyah","2012":"Shaa - Shubra","2013":"Shaa - Al-Munisiyah","2014":"Shaa - ALRawabi","2015":"Shaa - Al Hazam","2016":"Shaa - AL YARMUK","2017":"Shaa - Al Khaleej","2018":"Shaa - AL Salmaniyah","2019":"Shaa - An Narjis","2022":"Shaa - As Sahafah","2023":"Shaa - Ar Rabi","2025":"Shaa - Al Janadriyyah","2026":"Shaa - Dar Al Baida","2027":"Shaa - Al Thoumamah Rd","2029":"Shaa As Sahafah (Al Imam Saud Rd)","2030":"Shaa As Sulimaniyah","2031":"Shaa - Al Manar","2032":"Sha Al Shuhada","2033":"Shaa - Al Mursalat","204":"Bisha (King Saud Rd.)","210":"Safwan (King khalid Rd.)","213":"Boulevard (Prince Sultan Rd.)","264":"Samtah (Main Rd.)","265":"Sabya","268":"Abu Arish (King Abdulaziz St.)","269":"Wadi Al-dawasir","272":"Qunfudhah (King Abdulaziz RD)","274":"Al shatea'a (corniche Rd.)","286":"Al Mousa","61":"AlArin (King Fahd Rd.)","77":"Tayyib AlIsm (Madina Rd.)","211":"Alhuwaya (Airport Rd.)","215":"AlRehab (Prince Mitab St.)","216":"AlHamadaniyyah (AlHamadaniyyah St.)","218":"Taiba ( Main St.)","223":"Al Marwah (Hira St.)","228":"AlMuhamadiah (Prince Sultan Rd.)","229":"AlSamir (AlAjwad St.)","230":"AlSalamah (Saqr Quraish St.)","231":"Red Sea Mall (King Abdulaziz Rd.)","236":"Mishrifah (Falastin St.)","238":"AlRabi (Al Haramain Rd.)","242":"Al Sanabel(Main street)","25":"Aziz Mall (Prince Majid St.)","250":"Quwaizah (Jac St.)","251":"An Nawwariyyah (Madinah Rd.)","253":"Prince fawaz southern Dist. (Makkah Hwy.)","254":"Al Hamraa (Falastin St.)","255":"Al Safa (umm Al qura St.)","256":"Al Jal (King khalid Rd.)","257":"Alqayam Al Aala (Sulaiman Alrajhi Rd)","258":"Al Zahra (Ahamd Al Attas St.)","262":"Ash Shara(Omar Kadi Str.)","276":"Tayseer(Falastin St.)","42":"Obhur Al-Shamaliyah (Aaaber AlKarat St.)","72":"AlShoqiyah (Dr. Abdulqadir Koshak St.)","73":"AlShuhada (Madina Rd.)","74":"AlMarwah (Prince Majid St.)","76":"Shihar (Shihar St.)","81":"AlFayha'a (Abdullah Sulyman St.)","86":"AlAwali (Prince Sultan Rd.)","93":"AlSumayri (Alhizam Street)","94":"Yanbu Al Balad (King Abdulaziz Rd.)","95":"AlQiblatayn (Sultana Rd.)","96":"AlAzizia (Prince Naif Rd.)","97":"AlIskan (Prince Abdulmageed Bin Abdulaziz Rd.)","98":"Hara Shrqiya (Prince Mohamed Bin Abdulaziz Rd.)","99":"AlQaswa (AlAbas Bin Ebadh St.)","123":"AlMontazah (King Saud St.)","245":"Al Bawadi (Quarysh st.)","249":"Ad Diriyah (King Abdulaziz Rd.)","43":"AlNasim (Khuries Rd.)","44":"New Industrial (Industrial 2)","71":"Panorama mall (Takasusi St.)","90":"Abha festival"};
+var STORES = ["7","9","12","13","14","18","19","21","25","26","31","33","34","36","37","38","39","42","43","44","45","46","48","49","51","52","53","54","55","56","57","59","60","61","63","64","66","67","68","69","70","71","72","73","74","75","76","77","78","79","81","82","83","84","86","87","88","90","91","92","93","94","95","96","97","98","99","112","118","122","123","129","130","131","135","138","139","142","144","145","146","149","151","181","201","202","203","204","206","207","208","209","210","211","212","213","215","216","218","219","220","221","222","223","224","225","226","227","228","229","230","231","232","233","234","235","236","238","239","240","241","242","243","245","247","249","250","251","252","253","254","255","256","257","258","260","262","263","264","265","266","267","268","269","270","271","272","273","274","275","276","278","279","280","282","283","284","286","287","288","290","291","293","294","295","296","297","301","302","303","305","401","999","1001","1002","1003","1004","2001","2002","2003","2004","2005","2006","2007","2008","2009","2010","2011","2012","2013","2014","2015","2016","2017","2018","2019","2022","2023","2025","2026","2027","2029","2030","2031","2032","2033","6666","9900","9997","9999"];
+var SEED=[]; // public build: no embedded records
+
+/* ---------------- state ---------------- */
+var rows = [];
+var sort = {key:"date",dir:"desc"};
+
+function todayISO(){return new Date().toISOString().slice(0,10);}
+function yesterdayISO(){var d=new Date();d.setDate(d.getDate()-1);return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
+function monthStartISO(){var d=new Date();return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-01";}
+function monthEndISO(){var d=new Date();var e=new Date(d.getFullYear(),d.getMonth()+1,0);return e.getFullYear()+"-"+("0"+(e.getMonth()+1)).slice(-2)+"-"+("0"+e.getDate()).slice(-2);}
+function load(){
+  try{var raw=localStorage.getItem(STORE_KEY);if(raw){rows=JSON.parse(raw);return;}}catch(e){}
+  rows=SEED.slice();
+}
+function save(alsoFile){try{localStorage.setItem(STORE_KEY,JSON.stringify(rows));}catch(e){} if(alsoFile!==false) writeToFile();}
+
+/* ---------- shared live backend (n8n webhook) ---------- */
+var API_KEY="aggTrackerApiUrl";
+var apiUrl=""; try{apiUrl=localStorage.getItem(API_KEY)||"";}catch(e){}
+var apiPoll=null, apiBusy=false;
+function api(method,body){
+  var opts={method:method,mode:"cors"};
+  if(body){opts.headers={"Content-Type":"text/plain;charset=UTF-8"};opts.body=JSON.stringify(body);}
+  return fetch(apiUrl,opts)
+    .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.text();})
+    .then(function(t){return t?JSON.parse(t):null;});
+}
+function serverLoad(announce){
+  if(!apiUrl)return Promise.resolve();
+  return api("GET").then(function(d){
+    var arr=Array.isArray(d)?d:(d&&d.rows)||[];
+    if(Array.isArray(arr)){rows=arr;try{localStorage.setItem(STORE_KEY,JSON.stringify(rows));}catch(e){}render();refreshBranches();if(announce)toast("Loaded "+rows.length+" records from server");}
+  }).catch(function(e){if(announce)toast("Server load failed: "+e.message);});
+}
+function serverUpsert(row){if(apiUrl)api("POST",{action:"upsert",row:row}).catch(function(){});}
+function serverDelete(id){if(apiUrl)api("POST",{action:"delete",id:id}).catch(function(){});}
+function serverReplace(){if(apiUrl)api("POST",{action:"replace",rows:rows}).catch(function(){});}
+function startServerPoll(){if(apiPoll)clearInterval(apiPoll);if(!apiUrl)return;apiPoll=setInterval(function(){if(!apiBusy){apiBusy=true;serverLoad(false).then(function(){apiBusy=false;},function(){apiBusy=false;});}},7000);}
+function stopServerPoll(){if(apiPoll)clearInterval(apiPoll);apiPoll=null;}
+function updateServerUI(){var el=$("srvState");if(!el)return;if(apiUrl){el.textContent="◆ Server: live";el.style.color="var(--good)";}else{el.textContent="";}}
+function setServer(){
+  var v=prompt("Paste the n8n webhook Production URL for the tracker (blank to disconnect):", apiUrl||"https://shawarmer.app.n8n.cloud/webhook/aggregator-tracker");
+  if(v===null)return;
+  apiUrl=v.trim(); try{localStorage.setItem(API_KEY,apiUrl);}catch(e){}
+  updateServerUI();
+  if(apiUrl){serverLoad(true).then(startServerPoll);toast("Connected to server");}else{stopServerPoll();toast("Disconnected from server");}
+}
+
+/* ---------- shared data file on OneDrive (File System Access API) ---------- */
+var fileHandle=null, IDB_DB="aggTracker", IDB_KEY="fileHandle", writing=false, writeQueued=false;
+function idbOpen(){return new Promise(function(res,rej){var r=indexedDB.open(IDB_DB,1);
+  r.onupgradeneeded=function(){r.result.createObjectStore("kv");};
+  r.onsuccess=function(){res(r.result);}; r.onerror=function(){rej(r.error);};});}
+function idbSet(k,v){return idbOpen().then(function(db){return new Promise(function(res){var t=db.transaction("kv","readwrite");t.objectStore("kv").put(v,k);t.oncomplete=function(){res();};t.onerror=function(){res();};});}).catch(function(){});}
+function idbGet(k){return idbOpen().then(function(db){return new Promise(function(res){var t=db.transaction("kv","readonly");var q=t.objectStore("kv").get(k);q.onsuccess=function(){res(q.result||null);};q.onerror=function(){res(null);};});}).catch(function(){return null;});}
+function ensurePerm(h,mode){if(!h||!h.queryPermission)return Promise.resolve(true);var o={mode:mode};
+  return h.queryPermission(o).then(function(p){if(p==="granted")return true;return h.requestPermission(o).then(function(p2){return p2==="granted";});});}
+function updateSyncUI(){var el=$("syncState");if(!el)return;
+  if(fileHandle){el.textContent="● OneDrive: "+fileHandle.name;el.style.color="var(--good)";}
+  else{el.textContent="○ Local only";el.style.color="var(--muted)";}}
+var lastMTime=0, pollTimer=null;
+function readFromFile(announce){
+  if(!fileHandle)return Promise.resolve();
+  return ensurePerm(fileHandle,"read").then(function(ok){if(!ok){toast("Permission needed to read the file");return;}
+    var fref;
+    return fileHandle.getFile().then(function(f){fref=f;return f.text();}).then(function(t){
+      var data=t&&t.trim()?JSON.parse(t):[];
+      if(Array.isArray(data)){rows=data;save(false);render();refreshBranches();if(fref)lastMTime=fref.lastModified;if(announce)toast("Loaded "+rows.length+" records from OneDrive file");}
+    });
+  }).catch(function(e){toast("Could not read file: "+e.message);});}
+function stampMTime(){if(!fileHandle)return;fileHandle.getFile().then(function(f){lastMTime=f.lastModified;}).catch(function(){});}
+function writeToFile(){
+  if(!fileHandle)return;
+  if(writing){writeQueued=true;return;}
+  writing=true;
+  ensurePerm(fileHandle,"readwrite").then(function(ok){if(!ok)throw new Error("no perm");
+    return fileHandle.createWritable().then(function(w){return w.write(JSON.stringify(rows)).then(function(){return w.close();});});
+  }).catch(function(){}).then(function(){writing=false;stampMTime();if(writeQueued){writeQueued=false;writeToFile();}});}
+function pollFile(){
+  if(!fileHandle||writing)return;
+  fileHandle.getFile().then(function(f){
+    if(f.lastModified>lastMTime+1){ lastMTime=f.lastModified;
+      return f.text().then(function(t){var data=t&&t.trim()?JSON.parse(t):[];
+        if(Array.isArray(data)){rows=data;try{localStorage.setItem(STORE_KEY,JSON.stringify(rows));}catch(e){}render();refreshBranches();toast("↻ Synced from OneDrive ("+rows.length+" records)");}});
+    }
+  }).catch(function(){});}
+function startAutoSync(){
+  if(pollTimer)clearInterval(pollTimer);
+  pollTimer=setInterval(pollFile,5000);
+  window.addEventListener("focus",pollFile);
+}
+function linkFile(){
+  if(!window.showOpenFilePicker){toast("Open this file locally in Chrome/Edge (desktop) to link a OneDrive file.");return;}
+  window.showOpenFilePicker({types:[{description:"Tracker data",accept:{"application/json":[".json"]}}]}).then(function(hs){
+    fileHandle=hs[0];return idbSet(IDB_KEY,fileHandle).then(function(){return readFromFile(true);}).then(updateSyncUI).then(startAutoSync);
+  }).catch(function(){});}
+function newFile(){
+  if(!window.showSaveFilePicker){toast("Open this file locally in Chrome/Edge (desktop) to create a OneDrive file.");return;}
+  window.showSaveFilePicker({suggestedName:"aggregator-data.json",types:[{description:"Tracker data",accept:{"application/json":[".json"]}}]}).then(function(h){
+    fileHandle=h;return idbSet(IDB_KEY,fileHandle).then(writeToFile).then(updateSyncUI).then(startAutoSync).then(function(){toast("Created "+h.name+" — changes now sync to OneDrive");});
+  }).catch(function(){});}
+function restoreFileLink(){
+  idbGet(IDB_KEY).then(function(h){if(!h)return; fileHandle=h; updateSyncUI();
+    if(h.queryPermission){h.queryPermission({mode:"readwrite"}).then(function(p){if(p==="granted"){readFromFile(false).then(startAutoSync);}else toast("Linked file found — click ↻ Reload to reconnect");});}
+  });}
+
+/* ---------------- helpers ---------------- */
+function $(id){return document.getElementById(id);}
+function fillSelect(el,opts,withAll){
+  el.innerHTML="";
+  if(withAll){var o=document.createElement("option");o.textContent="All";el.appendChild(o);}
+  opts.forEach(function(v){var o=document.createElement("option");o.textContent=v;el.appendChild(o);});
+}
+function fillDatalist(el,opts){el.innerHTML="";opts.forEach(function(v){var o=document.createElement("option");o.value=v;el.appendChild(o);});}
+function branchOptions(){
+  var set={}; STORES.forEach(function(s){set[s]=1;});
+  rows.forEach(function(r){if(r.branchId)set[String(r.branchId)]=1;});
+  return Object.keys(set).sort(function(a,b){return (parseInt(a,10)||0)-(parseInt(b,10)||0);});
+}
+function refreshBranches(){
+  var el=$("dl-branch"); el.innerHTML="";
+  branchOptions().forEach(function(num){
+    var o=document.createElement("option"); o.value=num;
+    var nm=STORE_NAMES[num]; if(nm) o.textContent=nm;
+    el.appendChild(o);
+  });
+}
+function branchDisp(num){var nm=STORE_NAMES[String(num)];return nm?(num+" — "+nm):String(num||"");}
+function fmtAmount(v){if(v===""||v==null)return "";var n=Number(v);return isNaN(n)?String(v):n.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});}
+var editingId=null;
+function editRow(id){
+  var r=null,i; for(i=0;i<rows.length;i++){if(rows[i].id===id){r=rows[i];break;}}
+  if(!r)return;
+  editingId=id;
+  $("f-date").value=r.date||""; if($("f-agg"))$("f-agg").value=r.agg||""; $("f-order").value=r.orderId||"";
+  if($("f-amount"))$("f-amount").value=r.amount||""; $("f-branch").value=r.branchId||""; $("f-status").value=r.status||"";
+  $("f-reason").value=r.reason||""; if($("f-owner"))$("f-owner").value=r.owner||""; $("f-invest").value=r.investigation||"";
+  $("f-it").value=r.itFeedback||""; $("f-ops").value=r.opsFeedback||"";
+  $("btnAdd").textContent="✓ Update entry";
+  $("formBody").style.display=""; $("toggleForm").textContent="Hide";
+  try{window.scrollTo({top:0,behavior:"smooth"});}catch(e){window.scrollTo(0,0);}
+  $("f-order").focus();
+}
+function clearEntry(){
+  ["f-date","f-order","f-amount","f-branch","f-status","f-reason","f-invest","f-it","f-ops"].forEach(function(id){if($(id))$(id).value="";});
+  if($("f-agg"))$("f-agg").value="";
+  if($("f-owner"))$("f-owner").value="";
+  editingId=null; if($("btnAdd"))$("btnAdd").textContent="＋ Add entry";
+}
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function pillClass(st){if(/cancel/i.test(st))return "bad";if(/compensat/i.test(st))return "warn";return "neutral";}
+function pillStyle(st){
+  if(/cancel/i.test(st))return "color:var(--bad);background:var(--bad-tint)";
+  if(/compensat/i.test(st))return "color:var(--warn);background:var(--warn-tint)";
+  return "color:var(--muted);background:var(--maroon-tint)";
+}
+
+/* ---------------- filtering ---------------- */
+function getFiltered(){
+  var from=$("q-from").value, to=$("q-to").value, agg=$("q-agg").value, st=$("q-status").value, q=$("q-search").value.toLowerCase();
+  var out=rows.filter(function(r){
+    if(from && r.date<from)return false;
+    if(to && r.date>to)return false;
+    if(agg!=="All" && r.agg!==agg)return false;
+    if(st!=="All" && r.status!==st)return false;
+    if(q){var hay=(r.orderId+" "+r.branchId+" "+r.reason+" "+r.investigation+" "+r.itFeedback+" "+r.opsFeedback).toLowerCase();if(hay.indexOf(q)<0)return false;}
+    return true;
+  });
+  out.sort(function(a,b){var av=a[sort.key]||"",bv=b[sort.key]||"";var d=av>bv?1:av<bv?-1:0;return sort.dir==="asc"?d:-d;});
+  return out;
+}
+
+/* ---------------- render ---------------- */
+function filterApplied(){
+  return !!($("q-from").value || $("q-to").value || $("q-search").value.trim() ||
+    ($("q-agg").value && $("q-agg").value!=="All") || ($("q-status").value && $("q-status").value!=="All"));
+}
+function render(){
+  var applied=filterApplied();
+  var data=applied?getFiltered():[];
+  $("rowCount").textContent=data.length;
+  var tb=$("tbody");
+  if(!applied){tb.innerHTML='<tr><td class="empty" colspan="'+(COLS.length+1)+'">Set a filter (date range, aggregator, status, or search) to view records.</td></tr>';return;}
+  if(!data.length){tb.innerHTML='<tr><td class="empty" colspan="'+(COLS.length+1)+'">No records match the current filters. Adjust the filters or clear them.</td></tr>';return;}
+  tb.innerHTML=data.map(function(r){
+    return "<tr>"+
+      "<td style='white-space:nowrap'>"+esc(r.date)+"</td>"+
+      "<td class='agg'>"+esc(r.agg)+"</td>"+
+      "<td style='white-space:nowrap'><a href='#' class='olink' data-oid='"+esc(r.orderId)+"'>"+esc(r.orderId)+"</a></td>"+
+      "<td style='text-align:right;white-space:nowrap'>"+esc(fmtAmount(r.amount))+"</td>"+
+      "<td style='white-space:nowrap'>"+esc(branchDisp(r.branchId))+"</td>"+
+      "<td><span class='pill' style='"+pillStyle(r.status)+"'>"+esc(r.status||"—")+"</span></td>"+
+      "<td style='max-width:220px'>"+esc(r.reason)+"</td>"+
+      "<td style='color:var(--muted)'>"+esc(r.owner)+"</td>"+
+      "<td style='max-width:220px'>"+esc(r.investigation)+"</td>"+
+      "<td style='color:var(--muted)'>"+esc(r.itFeedback)+"</td>"+
+      "<td style='color:var(--muted)'>"+esc(r.opsFeedback)+"</td>"+
+      "<td style='text-align:right;white-space:nowrap'><button class='edit' data-id='"+r.id+"' title='Edit'>✏️</button><button class='del' data-id='"+r.id+"' title='Delete'>🗑</button></td>"+
+    "</tr>";
+  }).join("");
+  Array.prototype.forEach.call(document.querySelectorAll(".edit"),function(b){
+    b.onclick=function(){editRow(b.getAttribute("data-id"));};
+  });
+  Array.prototype.forEach.call(document.querySelectorAll(".del"),function(b){
+    b.onclick=function(){var did=b.getAttribute("data-id");rows=rows.filter(function(x){return x.id!==did;});save();serverDelete(did);render();};
+  });
+  Array.prototype.forEach.call(document.querySelectorAll(".olink"),function(a){
+    a.onclick=function(e){e.preventDefault();openOrder(a.getAttribute("data-oid"));};
+  });
+}
+
+/* ---------------- CSV ---------------- */
+function csvCell(v){var s=String(v==null?"":v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}
+function exportCSV(){
+  var data=getFiltered();
+  var head=COLS.map(function(c){return c.label;}).join(",");
+  var body=data.map(function(r){return COLS.map(function(c){return csvCell(r[c.key]);}).join(",");}).join("\n");
+  var blob=new Blob([head+"\n"+body],{type:"text/csv;charset=utf-8;"});
+  var url=URL.createObjectURL(blob);var a=document.createElement("a");
+  a.href=url;a.download="aggregator_issues_"+todayISO()+".csv";a.click();URL.revokeObjectURL(url);
+}
+function parseCSV(text){
+  var out=[],i=0,field="",row=[],q=false;
+  while(i<text.length){var ch=text[i];
+    if(q){if(ch==='"'&&text[i+1]==='"'){field+='"';i+=2;continue;}if(ch==='"'){q=false;i++;continue;}field+=ch;i++;continue;}
+    if(ch==='"'){q=true;i++;continue;}
+    if(ch===","){row.push(field);field="";i++;continue;}
+    if(ch==="\n"||ch==="\r"){if(ch==="\r"&&text[i+1]==="\n")i++;row.push(field);out.push(row);row=[];field="";i++;continue;}
+    field+=ch;i++;}
+  if(field.length||row.length){row.push(field);out.push(row);}
+  return out.filter(function(r){return r.some(function(c){return c.trim()!=="";});});
+}
+function normDate(d){
+  if(!d)return todayISO();
+  var m=d.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+  if(m)return m[1]+"-"+("0"+m[2]).slice(-2)+"-"+("0"+m[3]).slice(-2);
+  var m2=d.match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+  if(m2)return m2[3]+"-"+("0"+m2[2]).slice(-2)+"-"+("0"+m2[1]).slice(-2);
+  return d.slice(0,10);
+}
+function importCSV(file){
+  var rd=new FileReader();
+  rd.onload=function(){
+    try{
+      var parsed=parseCSV(String(rd.result));
+      if(parsed.length<2){alert("No rows found in CSV.");return;}
+      var header=parsed[0].map(function(h){return h.trim().toLowerCase();});
+      function idx(labels){for(var i=0;i<header.length;i++){if(labels.indexOf(header[i])>=0)return i;}return -1;}
+      var map={date:idx(["date","day"]),agg:idx(["aggregator","agg"]),orderId:idx(["order id","orderid"]),amount:idx(["order amount","amount"]),
+        branchId:idx(["branch","branch id","branchid"]),status:idx(["order status","status"]),
+        reason:idx(["reason / comment","agg reason & comment","reason"]),owner:idx(["owner"]),
+        investigation:idx(["1st level investigation","investigation"]),itFeedback:idx(["it feedback","itfeedback"]),
+        opsFeedback:idx(["ops feedback","opsfeedback"])};
+      function get(arr,k){return map[k]>=0?(arr[map[k]]||"").trim():"";}
+      var imported=parsed.slice(1).map(function(arr,i){
+        var raw=get(arr,"agg");var agg=AGG_ALIAS[raw.toLowerCase()]||raw||"HungerStation";
+        return {id:"imp-"+Date.now()+"-"+i,date:normDate(get(arr,"date")),agg:agg,orderId:get(arr,"orderId"),amount:get(arr,"amount"),
+          branchId:get(arr,"branchId"),status:get(arr,"status")||"Cancelled",reason:get(arr,"reason")||"Technical problem",
+          owner:get(arr,"owner")||"IT",investigation:get(arr,"investigation"),itFeedback:get(arr,"itFeedback"),opsFeedback:get(arr,"opsFeedback")};
+      }).filter(function(r){return r.orderId;});
+      rows=imported;save();render();refreshBranches();serverReplace();
+      alert("Imported "+imported.length+" rows (replaced current data).");
+    }catch(e){alert("Could not parse CSV: "+e.message);}
+  };
+  rd.readAsText(file);
+}
+
+/* ---------------- reports ---------------- */
+function barList(el,pairs,color){
+  if(!pairs.length){el.innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px 0">No data.</div>';return;}
+  var max=pairs[0][1]||1;
+  el.innerHTML=pairs.map(function(p,i){
+    var w=Math.round(p[1]/max*100); var c=color||SERIES[i%SERIES.length];
+    return '<div class="bar-row"><span class="name" title="'+esc(p[0])+'">'+esc(p[0])+'</span>'+
+      '<div class="bar-track"><div class="bar-fill" style="width:'+w+'%;background:'+c+'"></div></div>'+
+      '<span class="cnt">'+p[1]+'</span></div>';
+  }).join("");
+}
+function reportData(){
+  var from=$("r-from").value,to=$("r-to").value,agg=$("r-agg").value;
+  return rows.filter(function(r){
+    if(from&&r.date<from)return false;
+    if(to&&r.date>to)return false;
+    if(agg&&agg!=="All"&&r.agg!==agg)return false;
+    return true;
+  });
+}
+function tally(data,keyfn){
+  var m={};data.forEach(function(r){var k=keyfn(r);if(k===""||k==null)return;m[k]=(m[k]||0)+1;});
+  return Object.keys(m).map(function(k){return [k,m[k]];});
+}
+var MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function monthLabel(ym){var p=ym.split("-");return MONTHS[(parseInt(p[1],10)||1)-1]+" "+p[0];}
+function renderReports(){
+  var data=reportData();
+  var cancel=0,comp=0,st={},amt=0;
+  data.forEach(function(r){if(/cancel/i.test(r.status))cancel++;if(/compensat/i.test(r.status))comp++;if(r.branchId)st[r.branchId]=1;var n=parseFloat(r.amount);if(!isNaN(n))amt+=n;});
+  var kpi=[["Total issues",data.length],["Cancelled",cancel],["Compensated",comp],["Stores affected",Object.keys(st).length],["Total Amount (SAR)",fmtAmount(amt)]];
+  $("r-kpis").style.gridTemplateColumns="repeat(auto-fit,minmax(150px,1fr))";
+  $("r-kpis").innerHTML=kpi.map(function(k){return '<div class="kpi"><div class="lab">'+k[0]+'</div><div class="val">'+k[1]+'</div></div>';}).join("");
+  var months=tally(data,function(r){return (r.date||"").slice(0,7);}).filter(function(p){return /^\d{4}-\d{2}$/.test(p[0]);});
+  months.sort(function(a,b){return a[0]<b[0]?-1:1;});
+  barList($("r-month"),months.map(function(p){return [monthLabel(p[0]),p[1]];}),SERIES[0]);
+  var stores=tally(data,function(r){return String(r.branchId||"");}).sort(function(a,b){return b[1]-a[1];}).slice(0,15).map(function(p){return [branchDisp(p[0]),p[1]];});
+  barList($("r-store"),stores,SERIES[2]);
+  barList($("r-aggb"),tally(data,function(r){return r.agg;}).sort(function(a,b){return b[1]-a[1];}),SERIES[1]);
+  barList($("r-status"),tally(data,function(r){return r.status;}).sort(function(a,b){return b[1]-a[1];}).slice(0,12),SERIES[3]);
+  barList($("r-owner"),tally(data,function(r){return r.owner;}).sort(function(a,b){return b[1]-a[1];}),SERIES[5]);
+  barList($("r-invest"),tally(data,function(r){return r.investigation;}).sort(function(a,b){return b[1]-a[1];}).slice(0,12),SERIES[4]);
+}
+function exportReport(kind){
+  var data=reportData(),rowsOut=[];
+  if(kind==="month"){
+    var m=tally(data,function(r){return (r.date||"").slice(0,7);}).filter(function(p){return /^\d{4}-\d{2}$/.test(p[0]);}).sort(function(a,b){return a[0]<b[0]?-1:1;});
+    rowsOut=[["Month","Issues"]].concat(m.map(function(p){return [monthLabel(p[0]),p[1]];}));
+  }else{
+    var s=tally(data,function(r){return String(r.branchId||"");}).sort(function(a,b){return b[1]-a[1];});
+    rowsOut=[["Branch","Store name","Issues"]].concat(s.map(function(p){return [p[0],STORE_NAMES[p[0]]||"",p[1]];}));
+  }
+  var csv=rowsOut.map(function(r){return r.map(csvCell).join(",");}).join("\n");
+  var blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});var url=URL.createObjectURL(blob);
+  var a=document.createElement("a");a.href=url;a.download="report_"+kind+"_"+todayISO()+".csv";a.click();URL.revokeObjectURL(url);
+}
+function showTab(name){
+  $("tab-tracker").className=(name==="tracker")?"":"hide";
+  $("tab-reports").className=(name==="reports")?"":"hide";
+  Array.prototype.forEach.call(document.querySelectorAll(".tab"),function(t){t.className="tab"+(t.getAttribute("data-tab")===name?" active":"");});
+  if(name==="reports")renderReports();
+}
+
+/* ---------------- init ---------------- */
+function init(){
+  load();
+  // build thead
+  $("theadRow").innerHTML=COLS.map(function(c){return "<th data-key='"+c.key+"'>"+c.label+"</th>";}).join("")+"<th></th>";
+  Array.prototype.forEach.call(document.querySelectorAll("#theadRow th[data-key]"),function(th){
+    th.onclick=function(){var k=th.getAttribute("data-key");sort=(sort.key===k&&sort.dir==="desc")?{key:k,dir:"asc"}:{key:k,dir:"desc"};
+      Array.prototype.forEach.call(document.querySelectorAll("#theadRow th[data-key]"),function(x){x.textContent=COLS.filter(function(c){return c.key===x.getAttribute("data-key");})[0].label;});
+      th.textContent=COLS.filter(function(c){return c.key===k;})[0].label+(sort.dir==="desc"?" ↓":" ↑");render();};
+  });
+  // selects & datalists
+  fillSelect($("f-agg"),AGGREGATORS,false);
+  fillSelect($("f-owner"),OWNERS,false);
+  fillSelect($("q-agg"),AGGREGATORS,true);
+  fillSelect($("q-status"),STATUSES,true);
+  fillDatalist($("dl-status"),STATUSES);
+  fillDatalist($("dl-reason"),REASONS);
+  fillDatalist($("dl-invest"),INVESTIGATIONS);
+  refreshBranches();
+  // defaults
+  $("f-agg").insertAdjacentHTML("afterbegin",'<option value=""></option>');
+  $("f-owner").insertAdjacentHTML("afterbegin",'<option value=""></option>');
+  clearEntry();
+  $("btnClearEntry").onclick=function(){clearEntry();$("f-order").focus();};
+  // events
+  $("btnAdd").onclick=function(){
+    var order=$("f-order").value.trim();
+    if(!order){alert("Order ID is required.");return;}
+    var rec={date:$("f-date").value||todayISO(),agg:$("f-agg").value||"HungerStation",orderId:order,amount:$("f-amount").value.trim(),
+      branchId:$("f-branch").value.trim(),status:$("f-status").value,reason:$("f-reason").value,owner:$("f-owner").value||"IT",
+      investigation:$("f-invest").value,itFeedback:$("f-it").value,opsFeedback:$("f-ops").value};
+    if(editingId){
+      for(var i=0;i<rows.length;i++){if(rows[i].id===editingId){rec.id=editingId;rows[i]=rec;break;}}
+      toast("✓ Issue updated");
+    } else {
+      rec.id="e-"+Date.now(); rows.unshift(rec); toast("✓ Issue added");
+    }
+    save();refreshBranches();serverUpsert(rec);
+    clearEntry();
+    render();$("f-order").focus();
+  };
+  ["q-from","q-to","q-agg","q-status","q-search"].forEach(function(id){$(id).oninput=render;$(id).onchange=render;});
+  $("q-from").value=yesterdayISO();$("q-to").value=yesterdayISO();
+  $("btnClear").onclick=function(){$("q-from").value=yesterdayISO();$("q-to").value=yesterdayISO();$("q-agg").value="All";$("q-status").value="All";$("q-search").value="";render();};
+  $("btnExport").onclick=exportCSV;
+  $("btnLink").onclick=linkFile;
+  $("btnNewFile").onclick=newFile;
+  $("btnReload").onclick=function(){if(fileHandle)readFromFile(true);else toast("No linked file. Click 🔗 Link OneDrive file first.");};
+  restoreFileLink();
+  $("btnServer").onclick=setServer;
+  updateServerUI();
+  if(apiUrl){serverLoad(true).then(startServerPoll);}
+  $("btnImport").onclick=function(){$("fileInput").click();};
+  $("fileInput").onchange=function(e){if(e.target.files&&e.target.files[0]){importCSV(e.target.files[0]);e.target.value="";}};
+  $("toggleForm").onclick=function(){var b=$("formBody");var h=b.style.display==="none";b.style.display=h?"":"none";$("toggleForm").textContent=h?"Hide":"Show";};
+  fillSelect($("r-agg"),AGGREGATORS,true);
+  Array.prototype.forEach.call(document.querySelectorAll(".tab"),function(t){t.onclick=function(){showTab(t.getAttribute("data-tab"));};});
+  ["r-from","r-to","r-agg"].forEach(function(id){$(id).oninput=renderReports;$(id).onchange=renderReports;});
+  $("r-from").value=monthStartISO();$("r-to").value=monthEndISO();
+  $("r-clear").onclick=function(){$("r-from").value=monthStartISO();$("r-to").value=monthEndISO();$("r-agg").value="All";renderReports();};
+  Array.prototype.forEach.call(document.querySelectorAll("[data-exp]"),function(b){b.onclick=function(){exportReport(b.getAttribute("data-exp"));};});
+  render();
+}
+init();
+</script>
+</body>
+</html>
